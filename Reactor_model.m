@@ -56,17 +56,17 @@ end
 %[T,Y] = ode45(@fun,[0,t_final],[N_U235,N_U238,0,0,0,0]);
 
 figure;
-loglog(T,Y(:,1));
+semilogy(T,Y(:,1));
 hold on;
-loglog(T,Y(:,2));
+semilogy(T,Y(:,2));
 hold on;
-loglog(T,Y(:,3));
+semilogy(T,Y(:,3));
 hold on;
-loglog(T,Y(:,4));
+semilogy(T,Y(:,4));
 hold on;
-loglog(T,Y(:,5));
+semilogy(T,Y(:,5));
 hold on;
-loglog(T,Y(:,6));
+semilogy(T,Y(:,6));
 hold on;
 xlabel('Temps [s]');
 ylabel('Espèces [mol]');
