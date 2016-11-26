@@ -43,7 +43,7 @@ T=linspace(0,t_final,t_final/dt);
 Y=zeros(length(T),6);
 Y(1,:)=[N_U235 N_U238 0 0 0 0];
 
-for i= 2:t_final
+for i= 2:length(T)
     Y(i,1) = Y(i-1,1)+(- Y(i-1,1)*sigma_U235*10e-28*flux_thermal - Y(i-1,1)*log(2)/demi_U235)*dt; %U235
     Y(i,2) = Y(i-1,2)+(- Y(i-1,2)*sigma_U238*10e-28*flux_thermal - Y(i-1,2)*log(2)/demi_U238)*dt; %U238
     Y(i,3) = Y(i-1,3)+(Y(i-1,2)*sigma_U238*10e-28*flux_thermal - Y(i-1,3)*log(2)/demi_U239)*dt; %U239
@@ -53,7 +53,7 @@ for i= 2:t_final
 end
 
 
-%[T,Y] = ode113(@fun,[0,t_final],[N_U235,N_U238,0,0,0,0]);
+%[T,Y] = ode45(@fun,[0,t_final],[N_U235,N_U238,0,0,0,0]);
 
 figure;
 loglog(T,Y(:,1));
