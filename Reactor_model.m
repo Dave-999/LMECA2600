@@ -53,13 +53,13 @@ N(1,1) = flux_thermal;
 
 for i = 2:length(T)
     Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*fis_U235*1e-28*N(i-1,1) - Y(i-1,1)*cap_U235*1e-28*N(i-1,1) - Y(i-1,1)*log(2)/demi_U235)*dt_gen; %U235
-    Y(i,2) = Y(i-1,2) + (- Y(i-1,2)*cap_U238*1e-28*N(i-1,1) - Y(i-1,2)*log(2)/demi_U238)*dt_gen; %U238
+    Y(i,2) = Y(i-1,2) + (- Y(i-1,1)*fis_U238*1e-28*N(i-1,1) - Y(i-1,2)*cap_U238*1e-28*N(i-1,1) - Y(i-1,2)*log(2)/demi_U238)*dt_gen; %U238
     Y(i,3) = Y(i-1,3) + (Y(i-1,2)*cap_U238*1e-28*N(i-1,1) - Y(i-1,3)*fis_U239*1e-28*N(i-1,1) - Y(i-1,3)*log(2)/demi_U239)*dt_gen; %U239
     Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/demi_U239 - Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) - Y(i-1,4)*log(2)/demi_Np239)*dt_gen; %Np239
     Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/demi_Np239 - Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1) - Y(i-1,5)*log(2)/demi_Pu239)*dt_gen; %Pu239
-    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*2*dt_gen; %PF*
+    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,1)*fis_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*2*dt_gen; %PF*
 
-    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,1)*fis_U238*1e-28*N(i-1,1) - Y(i-1,1)*cap_U235*1e-28*N(i-1,1) - Y(i-1,2)*cap_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*NA*dt_gen; %Flux
+    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) - Y(i-1,1)*cap_U235*1e-28*N(i-1,1) + Y(i-1,1)*fis_U238*1e-28*N(i-1,1) - Y(i-1,2)*cap_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*NA*dt_gen; %Flux
 end
 
 % t_final = 10; %[s]
