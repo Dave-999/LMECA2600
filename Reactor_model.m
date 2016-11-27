@@ -1,6 +1,7 @@
 function m = Reactor_model(t_final,dt_plot,P_stable,PF_retarded)
-%Donnees
 tic
+%Donnees
+
 V = 30; %Volume du reacteur en [m^3]
 m_Utot = 1000; %Masse d'Uranium [kg]
 
@@ -18,6 +19,8 @@ v_fast= 1000; %[m/s]
 
 n_thermal = 1e10; %Nombre de neutrons thermiques en t=0
 flux_thermal = n_thermal*v_thermal/V; %Flux de neutrons thermiques en t=0 [#/m^2.s]
+
+NA = 6.022e23;
 
 %--------------------------------------------------------------------------
 %%
@@ -42,18 +45,22 @@ demi_Pu239 = Demi_vie('Pu239','Alpha');
 
 
 t_final = 10; %[s]
-dt = 10^-4;
-T = linspace(0,t_final,t_final/dt);
-Y = zeros(length(T),6);
+dt_gen = 10^-4;
+T = [0:dt_gen:t_final];
+Y = zeros(length(T),6); %U235,U238,U239,Np239,Pu239,PF*
 Y(1,:) = [N_U235 N_U238 0 0 0 0];
+N = zeros(length(T),1); %Flux de neutrons thermiques
+N(1,1) = flux_thermal;
 
 for i = 2:length(T)
-    Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*fis_U235*10e-28*flux_thermal - Y(i-1,1)*cap_U235*10e-28*flux_thermal - Y(i-1,1)*log(2)/demi_U235)*dt; %U235
-    Y(i,2) = Y(i-1,2) + (- Y(i-1,2)*cap_U238*10e-28*flux_thermal - Y(i-1,2)*log(2)/demi_U238)*dt; %U238
-    Y(i,3) = Y(i-1,3) + (Y(i-1,2)*cap_U238*10e-28*flux_thermal - Y(i-1,3)*fis_U239*10e-28*flux_thermal - Y(i-1,3)*log(2)/demi_U239)*dt; %U239
-    Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/demi_U239 - Y(i-1,4)*fis_Np239*10e-28*flux_thermal - Y(i-1,4)*log(2)/demi_Np239)*dt; %Np239
-    Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/demi_Np239 - Y(i-1,5)*fis_Pu239*10e-28*flux_thermal - Y(i-1,5)*log(2)/demi_Pu239)*dt; %Pu239
-    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*10e-28*flux_thermal + Y(i-1,3)*fis_U239*10e-28*flux_thermal + Y(i-1,4)*fis_Np239*10e-28*flux_thermal + Y(i-1,5)*fis_Pu239*10e-28*flux_thermal)*dt; %PF*
+    Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*fis_U235*1e-28*N(i-1,1) - Y(i-1,1)*cap_U235*1e-28*N(i-1,1) - Y(i-1,1)*log(2)/demi_U235)*dt_gen; %U235
+    Y(i,2) = Y(i-1,2) + (- Y(i-1,2)*cap_U238*1e-28*N(i-1,1) - Y(i-1,2)*log(2)/demi_U238)*dt_gen; %U238
+    Y(i,3) = Y(i-1,3) + (Y(i-1,2)*cap_U238*1e-28*N(i-1,1) - Y(i-1,3)*fis_U239*1e-28*N(i-1,1) - Y(i-1,3)*log(2)/demi_U239)*dt_gen; %U239
+    Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/demi_U239 - Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) - Y(i-1,4)*log(2)/demi_Np239)*dt_gen; %Np239
+    Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/demi_Np239 - Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1) - Y(i-1,5)*log(2)/demi_Pu239)*dt_gen; %Pu239
+    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*2*dt_gen; %PF*
+
+    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) - Y(i-1,1)*cap_U235*1e-28*N(i-1,1) - Y(i-1,2)*cap_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*NA*dt_gen; %Flux
 end
 
 % t_final = 10; %[s]
@@ -73,8 +80,14 @@ hold on;
 semilogy(T,Y(:,6));
 xlabel('Temps [s]');
 ylabel('Espèces [mol]');
-legend('U235','U238','U239','Np239','Pu239','PF*');
+legend('U235','U238','U239','Np239','Pu239','PF*','Location','southeast');
 hold off;
+
+figure;
+semilogy(T,N(:,1));
+xlabel('Temps [s]');
+ylabel('Flux de neutrons thermiques [#/m^2.s]');
+
 
 toc
 end
