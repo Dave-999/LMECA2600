@@ -25,12 +25,11 @@ NA = 6.022e23;
 %--------------------------------------------------------------------------
 %%
 
-%ALTERNATIVE RAPIDE, INCORRECTE OU NON?
-
 fis_U235 = Section_efficace('U235','Fission',E_thermal,'DATABASE');
 cap_U235 = Section_efficace('U235','Capture',E_thermal,'DATABASE');
 demi_U235 = Demi_vie('U235','Alpha');
     
+fis_U238 = Section_efficace('U238','Fission',E_thermal,'DATABASE');
 cap_U238 = Section_efficace('U238','Capture',E_thermal,'DATABASE');
 demi_U238 = Demi_vie('U238','Alpha');
     
@@ -48,7 +47,7 @@ t_final = 10; %[s]
 dt_gen = 10^-4;
 T = [0:dt_gen:t_final];
 Y = zeros(length(T),6); %U235,U238,U239,Np239,Pu239,PF*
-Y(1,:) = [N_U235 N_U238 0 0 0 0];
+Y(1,:) = [N_U235 N_U238 0 0 0 0]; %Quantités initiales
 N = zeros(length(T),1); %Flux de neutrons thermiques
 N(1,1) = flux_thermal;
 
@@ -60,7 +59,7 @@ for i = 2:length(T)
     Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/demi_Np239 - Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1) - Y(i-1,5)*log(2)/demi_Pu239)*dt_gen; %Pu239
     Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*2*dt_gen; %PF*
 
-    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) - Y(i-1,1)*cap_U235*1e-28*N(i-1,1) - Y(i-1,2)*cap_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*NA*dt_gen; %Flux
+    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,1)*fis_U238*1e-28*N(i-1,1) - Y(i-1,1)*cap_U235*1e-28*N(i-1,1) - Y(i-1,2)*cap_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*NA*dt_gen; %Flux
 end
 
 % t_final = 10; %[s]
