@@ -40,22 +40,41 @@ demi_Np239 = Demi_vie('Np239','BetaMinus');
 fis_Pu239 = Section_efficace('Pu239','Fission',E_thermal,'DATABASE');
 
 
-t_final = 100; %[s]
+t_final = 10; %[s]
 dt_gen = 10^-4;
 T = [0:dt_gen:t_final];
-Y = zeros(length(T),6); %U235,U238,U239,Np239,Pu239,PF*
-Y(1,:) = [N_U235 N_U238 0 0 0 0]; %Quantités initiales
+Y = zeros(length(T),7); %U235,U238,U239,Np239,Pu239,PF*,PF
+Y(1,:) = [N_U235 N_U238 0 0 0 0 0]; %Quantités initiales
 N = zeros(length(T),1); %Flux de neutrons thermiques
 N(1,1) = flux_thermal;
 
 for i = 2:length(T)
     Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*fis_U235*1e-28*N(i-1,1))*dt_gen; %U235
-    Y(i,2) = Y(i-1,2) + (- Y(i-1,1)*fis_U238*1e-28*N(i-1,1) - Y(i-1,2)*cap_U238*1e-28*N(i-1,1))*dt_gen; %U238
-    Y(i,3) = Y(i-1,3) + (Y(i-1,2)*cap_U238*1e-28*N(i-1,1) - Y(i-1,3)*fis_U239*1e-28*N(i-1,1) - Y(i-1,3)*log(2)/demi_U239)*dt_gen; %U239
-    Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/demi_U239 - Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) - Y(i-1,4)*log(2)/demi_Np239)*dt_gen; %Np239
-    Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/demi_Np239 - Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*dt_gen; %Pu239
-    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,1)*fis_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*2*dt_gen; %PF*
-
+    Y(i,2) = Y(i-1,2) + (- Y(i-1,1)*fis_U238*1e-28*N(i-1,1) - Y(i-1,2)*...
+        cap_U238*1e-28*N(i-1,1))*dt_gen; %U238
+    Y(i,3) = Y(i-1,3) + (Y(i-1,2)*cap_U238*1e-28*N(i-1,1) - Y(i-1,3)*...
+        fis_U239*1e-28*N(i-1,1) - Y(i-1,3)*log(2)/demi_U239)*dt_gen; %U239
+    Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/demi_U239 - Y(i-1,4)*fis_Np239*...
+        1e-28*N(i-1,1) - Y(i-1,4)*log(2)/demi_Np239)*dt_gen; %Np239
+    Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/demi_Np239 - Y(i-1,5)*...
+        fis_Pu239*1e-28*N(i-1,1))*dt_gen; %Pu239
+    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,1)*...
+        fis_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) +...
+        Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*...
+        N(i-1,1))*2*dt_gen; %PF*
+    
+    if i > 1e4
+        Y(i,7) = Y(i-1,7) + (Y(i-1e4,1)*fis_U235*1e-28*N(i-1e4,1) +...
+            Y(i-1e4,1)*fis_U238*1e-28*N(i-1e4,1) + Y(i-1e4,3)*fis_U239*...
+            1e-28*N(i-1e4,1) + Y(i-1e4,4)*fis_Np239*1e-28*N(i-1e4,1) +...
+            Y(i-1e4,5)*fis_Pu239*1e-28*N(i-1e4,1))*dt_gen;
+        %Y(i,7) = Y(i-1,7) + Y(i-1e4,6);
+        Y(i,6) = Y(i,6) - (Y(i-1e4,1)*fis_U235*1e-28*N(i-1e4,1) +...
+            Y(i-1e4,1)*fis_U238*1e-28*N(i-1e4,1) + Y(i-1e4,3)*fis_U239*...
+            1e-28*N(i-1e4,1) + Y(i-1e4,4)*fis_Np239*1e-28*N(i-1e4,1) +...
+            Y(i-1e4,5)*fis_Pu239*1e-28*N(i-1e4,1))*dt_gen;
+    end
+    
     N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*1e-28*N(i-1,1) + Y(i-1,1)*fis_U238*1e-28*N(i-1,1) - Y(i-1,2)*cap_U238*1e-28*N(i-1,1) + Y(i-1,3)*fis_U239*1e-28*N(i-1,1) + Y(i-1,4)*fis_Np239*1e-28*N(i-1,1) + Y(i-1,5)*fis_Pu239*1e-28*N(i-1,1))*NA*(v_thermal/V)*dt_gen - lambda*N(i-1,1)*dt_gen; %Flux
 end
 
@@ -63,20 +82,22 @@ end
 % [T,Y] = ode45(@fun,[0,t_final],[N_U235,N_U238,0,0,0,0]);
 
 figure;
-semilogy(T,Y(:,1));
+loglog(T,Y(:,1));
 hold on;
-semilogy(T,Y(:,2));
+loglog(T,Y(:,2));
 hold on;
-semilogy(T,Y(:,3));
+loglog(T,Y(:,3));
 hold on;
-semilogy(T,Y(:,4));
+loglog(T,Y(:,4));
 hold on;
-semilogy(T,Y(:,5));
+loglog(T,Y(:,5));
 hold on;
-semilogy(T,Y(:,6));
+loglog(T,Y(:,6));
+hold on;
+loglog(T,Y(:,7));
 xlabel('Temps [s]');
 ylabel('Espèces [mol]');
-legend('U235','U238','U239','Np239','Pu239','PF*','Location','southeast');
+legend('U235','U238','U239','Np239','Pu239','PF*','PF','Location','southeast');
 hold off;
 
 figure;
