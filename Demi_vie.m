@@ -42,18 +42,7 @@ end
 switch Transfo
     case 'Gamma'% A IMPLEMENTER
         
-    case 'Alpha'
-        switch X
-            case 'U235'
-                demi_vie = 2.21950368*10^16; %[s]
-            case 'U238'
-                demi_vie = 1.40902848*10^17; %[s]
-            case 'Pu239'
-                demi_vie = 7.6033296*10^11; %[s]
-            otherwise
-                fprintf('\n The chemical %s is not implemented. half_life=10^99 <=> never happend',X);
-                demi_vie=10^99;
-        end
+    case 'Alpha'% A IMPLEMENTER
         
     case 'BetaMinus'
         switch X
