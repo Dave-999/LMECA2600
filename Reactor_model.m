@@ -42,7 +42,7 @@ demi_Np239 = Demi_vie('Np239','BetaMinus');
 fis_Pu239 = 1e-28*Section_efficace('Pu239','Fission',E_thermal,'DATABASE');
 
 
-t_final = 100; %[s]
+t_final = 10; %[s]
 dt_gen = 10^-4;
 T = [0:dt_gen:t_final];
 Y = zeros(length(T),7); %U235,U238,U239,Np239,Pu239,PF*,PF
@@ -59,7 +59,7 @@ for i = 2:length(T)
     Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*N(i-1,1) + Y(i-1,1)*fis_U238*N(i-1,1) + Y(i-1,3)*fis_U239*N(i-1,1) + Y(i-1,4)*fis_Np239*N(i-1,1) + Y(i-1,5)*fis_Pu239*N(i-1,1))*2*dt_gen - Y(i-1,6)*lambda_PF*dt_gen; %PF*
     Y(i,7) = Y(i-1,7) + Y(i-1,6)*lambda_PF*dt_gen;
     
-    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*N(i-1,1) + Y(i-1,1)*fis_U238*N(i-1,1) - Y(i-1,2)*cap_U238*N(i-1,1) + Y(i-1,3)*fis_U239*N(i-1,1) + Y(i-1,4)*fis_Np239*N(i-1,1) + Y(i-1,5)*fis_Pu239*N(i-1,1) + Y(i-1,7)*lambda_PF)*NA*(v_thermal/V)*dt_gen - N(i-1,1)*lambda_neutron*dt_gen; %Flux
+    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*N(i-1,1) + Y(i-1,1)*fis_U238*N(i-1,1) - Y(i-1,2)*cap_U238*N(i-1,1) + Y(i-1,3)*fis_U239*N(i-1,1) + Y(i-1,4)*fis_Np239*N(i-1,1) + Y(i-1,5)*fis_Pu239*N(i-1,1) + Y(i-1,6)*lambda_PF)*NA*(v_thermal/V)*dt_gen - N(i-1,1)*lambda_neutron*dt_gen; %Flux
 end
 
 %GRAPHES
