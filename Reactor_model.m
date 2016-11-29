@@ -20,7 +20,10 @@ v_fast= 1000; %[m/s]
 
 n_thermal = 1e10; %Nombre de neutrons thermiques en t=0
 flux_thermal = n_thermal*v_thermal/V; %Flux de neutrons thermiques en t=0 [#/m^2.s]
-lambda_pertes = 10; %A MODIFIER
+
+lambda_neutron = 10; %A MODIFIER
+T_PF = 1;
+lambda_PF = log(2)/T_PF;
 
 %--------------------------------------------------------------------------
 %%
@@ -39,7 +42,7 @@ demi_Np239 = Demi_vie('Np239','BetaMinus');
 fis_Pu239 = 1e-28*Section_efficace('Pu239','Fission',E_thermal,'DATABASE');
 
 
-t_final = 10; %[s]
+t_final = 100; %[s]
 dt_gen = 10^-4;
 T = [0:dt_gen:t_final];
 Y = zeros(length(T),7); %U235,U238,U239,Np239,Pu239,PF*,PF
@@ -53,9 +56,10 @@ for i = 2:length(T)
     Y(i,3) = Y(i-1,3) + (Y(i-1,2)*cap_U238*N(i-1,1) - Y(i-1,3)*fis_U239*N(i-1,1) - Y(i-1,3)*log(2)/demi_U239)*dt_gen; %U239
     Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/demi_U239 - Y(i-1,4)*fis_Np239*N(i-1,1) - Y(i-1,4)*log(2)/demi_Np239)*dt_gen; %Np239
     Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/demi_Np239 - Y(i-1,5)*fis_Pu239*N(i-1,1))*dt_gen; %Pu239
-    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*N(i-1,1) + Y(i-1,1)*fis_U238*N(i-1,1) + Y(i-1,3)*fis_U239*N(i-1,1) + Y(i-1,4)*fis_Np239*N(i-1,1) + Y(i-1,5)*fis_Pu239*N(i-1,1))*2*dt_gen; %PF*
+    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*fis_U235*N(i-1,1) + Y(i-1,1)*fis_U238*N(i-1,1) + Y(i-1,3)*fis_U239*N(i-1,1) + Y(i-1,4)*fis_Np239*N(i-1,1) + Y(i-1,5)*fis_Pu239*N(i-1,1))*2*dt_gen - Y(i-1,6)*lambda_PF*dt_gen; %PF*
+    Y(i,7) = Y(i-1,7) + Y(i-1,6)*lambda_PF*dt_gen;
     
-    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*N(i-1,1) + Y(i-1,1)*fis_U238*N(i-1,1) - Y(i-1,2)*cap_U238*N(i-1,1) + Y(i-1,3)*fis_U239*N(i-1,1) + Y(i-1,4)*fis_Np239*N(i-1,1) + Y(i-1,5)*fis_Pu239*N(i-1,1))*(v_thermal/V)*NA*(v_thermal/V)*dt_gen - lambda_pertes*N(i-1,1)*dt_gen; %Flux
+    N(i,1) = N(i-1,1) + (Y(i-1,1)*fis_U235*N(i-1,1) + Y(i-1,1)*fis_U238*N(i-1,1) - Y(i-1,2)*cap_U238*N(i-1,1) + Y(i-1,3)*fis_U239*N(i-1,1) + Y(i-1,4)*fis_Np239*N(i-1,1) + Y(i-1,5)*fis_Pu239*N(i-1,1) + Y(i-1,7)*lambda_PF)*NA*(v_thermal/V)*dt_gen - N(i-1,1)*lambda_neutron*dt_gen; %Flux
 end
 
 %GRAPHES
