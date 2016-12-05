@@ -5,11 +5,12 @@ tic
 NA = 6.022e23;
 V = 10; %Volume du reacteur en [m^3]
 
-No_Utot = 1e26; %Nombre d'atomes d'U [#]
-N_Utot = No_Utot/NA; %Nombre de moles d'U [mol]
+m_Utot = 1000; %[kg]
+m_U235 = m_Utot*0.03;
+m_U238 = m_Utot*0.97;
 
-N_U235 = N_Utot*0.03; %Nombre de moles d'U235 [mol]
-N_U238 = N_Utot*0.97; %Nombre de moles d'U238 [mol]
+N_U235 = m_U235/molaeMass('U235'); %Nombre de moles d'U235 [mol]
+N_U238 = m_U238/molaeMass('U238'); %Nombre de moles d'U238 [mol]
 
 E_thermal = 0.025; %[eV]
 E_fast = 1e6; %[eV]
@@ -45,11 +46,11 @@ t_final = 100; %[s]
 dt_gen = 10^-4;
 T = [0:dt_gen:t_final];
 Y = zeros(length(T),7); %U235,U238,U239,Np239,Pu239,PF*,PF
-Y(1,:) = [N_U235 N_U238 0 0 0 0 0]; %Quantites initiales
+Y(1,:) = [N_U235 N_U238 0 0 0 0 0]; %Quantites initiales [mol]
 N = zeros(length(T),1); %Flux de neutrons thermiques
 N(1,1) = n_thermal; %Nb de neutrons initial initial
 Phi = zeros(length(T),1);
-Phi(1,1) = flux_thermal;
+Phi(1,1) = flux_thermal;%Flux initial [#/m^2.s]
 
 for i = 2:length(T)
     Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*fis_U235*Phi(i-1,1))*dt_gen; %U235
