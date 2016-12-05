@@ -9,8 +9,8 @@ m_Utot = 1000; %[kg]
 m_U235 = m_Utot*0.03;
 m_U238 = m_Utot*0.97;
 
-N_U235 = m_U235/molaeMass('U235'); %Nombre de moles d'U235 [mol]
-N_U238 = m_U238/molaeMass('U238'); %Nombre de moles d'U238 [mol]
+N_U235 = m_U235/molarMass('U235'); %Nombre de moles d'U235 [mol]
+N_U238 = m_U238/molarMass('U238'); %Nombre de moles d'U238 [mol]
 
 E_thermal = 0.025; %[eV]
 E_fast = 1e6; %[eV]
@@ -21,7 +21,7 @@ v_fast= 1000; %[m/s]
 n_thermal = 1e10; %Nombre de neutrons thermiques en t=0
 flux_thermal = n_thermal*v_thermal/V; %Flux de neutrons thermiques en t=0 [#/m^2.s]
 
-lambda_neutron = 0.45; %Lambda pour les fuites de neutrons et barres de controle
+lambda_neutron = 5; %Lambda pour les fuites de neutrons et barres de controle
 T_PF = 1;
 lambda_PF = log(2)/T_PF; %Lambda pour PF* = PF + n + 5 MeV
 
@@ -42,15 +42,15 @@ demi_Np239 = Demi_vie('Np239','BetaMinus');
 fis_Pu239 = 1e-28*Section_efficace('Pu239','Fission',E_thermal,'DATABASE');
 
 
-t_final = 100; %[s]
+t_final = 10; %[s]
 dt_gen = 10^-4;
 T = [0:dt_gen:t_final];
 Y = zeros(length(T),7); %U235,U238,U239,Np239,Pu239,PF*,PF
 Y(1,:) = [N_U235 N_U238 0 0 0 0 0]; %Quantites initiales [mol]
 N = zeros(length(T),1); %Flux de neutrons thermiques
-N(1,1) = n_thermal; %Nb de neutrons initial initial
+N(1,1) = n_thermal; %Nb de neutrons initial [#]
 Phi = zeros(length(T),1);
-Phi(1,1) = flux_thermal;%Flux initial [#/m^2.s]
+Phi(1,1) = flux_thermal; %Flux initial [#/m^2.s]
 
 for i = 2:length(T)
     Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*fis_U235*Phi(i-1,1))*dt_gen; %U235
