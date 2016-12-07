@@ -21,7 +21,7 @@ v_fast= 1000; %[m/s]
 n_thermal = 1e10; %Nombre de neutrons thermiques en t=0
 flux_thermal = n_thermal*v_thermal/V; %Flux de neutrons thermiques en t=0 [#/m^2.s]
 
-lambda_neutron = 5; %Lambda pour les fuites de neutrons et barres de controle
+lambda_neutron = 1000; %Lambda pour les fuites de neutrons et barres de controle
 T_PF = 1;
 lambda_PF = log(2)/T_PF; %Lambda pour PF* = PF + n + 5 MeV
 
