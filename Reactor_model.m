@@ -6,7 +6,7 @@ tic
 %Donnees et hypotheses%
 %%%%%%%%%%%%%%%%%%%%%%%
 
-NA = 6.022e23; %avogadro
+NA = 6.02214076e23; %avogadro
 V = 10; %volume du reacteur [m^3]
 
 m_Utot = 1000; %masse d'uranium [kg]
@@ -72,7 +72,7 @@ demi_Xe135 = Demi_vie('Xe135','BetaMinus');
 %Initialisation des vecteurs%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-t_final = 120; %[s]
+t_final = 10; %[s]
 dt_gen = 10^-4;
 T = [0:dt_gen:t_final];
 Y = zeros(length(T),8); %U235,U238,U239,Np239,Pu239,PF*,Xe135,PF
