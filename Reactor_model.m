@@ -86,11 +86,10 @@ phi_th(1,1) = n_th(1,1)*v_thermique/V; %flux initial [#/m^2.s]
 phi_rap = zeros(length(T),1); %flux de neutrons rapides
 phi_rap(1,1) = n_rap(1,1)*v_rapide/V; %flux initial [#/m^2.s]
 
-n = zeros(length(T),1); %tous les neutrons (thermique+rapide)
-n(1,1) = n_th(1,1) + n_rap(1,1);
-
-n_ret = zeros(length(T),1); %neutrons retardes
-n_ret(1,1) = 0;
+% n = zeros(length(T),1); %tous les neutrons (thermique+rapide)
+% n(1,1) = n_th(1,1) + n_rap(1,1);
+% n_ret = zeros(length(T),1); %neutrons retardes
+% n_ret(1,1) = 0;
 
 %--------------------------------------------------------------------------
 %%
@@ -115,9 +114,8 @@ for i = 2:length(T)
     n_rap(i,1) = n_rap(i-1,1) + (Y(i-1,1)*fis_U235_th*phi_th(i-1,1) + Y(i-1,2)*fis_U238_th*phi_th(i-1,1) + Y(i-1,3)*fis_U239_th*phi_th(i-1,1) + Y(i-1,4)*fis_Np239_th*phi_th(i-1,1) + Y(i-1,5)*fis_Pu239_th*phi_th(i-1,1))*2*NA*dt_gen + (Y(i-1,1)*fis_U235_rap*phi_rap(i-1,1) + Y(i-1,2)*fis_U238_rap*phi_rap(i-1,1) + Y(i-1,3)*fis_U239_rap*phi_rap(i-1,1) + Y(i-1,4)*fis_Np239_rap*phi_rap(i-1,1) + Y(i-1,5)*fis_Pu239_rap*phi_rap(i-1,1) - Y(i-1,2)*cap_U238_rap*phi_rap(i-1,1))*NA*dt_gen + (- n_rap(i-1,1)*lambda_rt - n_rap(i-1,1)*lambda_perte_rap)*dt_gen;
     phi_rap(i,1) = n_rap(i,1)*v_rapide/V;
     
-    n(i,1) = n_th(i,1) + n_rap(i,1); %tous les neutrons (thermique+rapide)
-    
-    n_ret(i,1) = n_ret(i-1,1) + Y(i-1,6)*lambda_PF*NA*dt_gen; %neutrons retardes
+%     n(i,1) = n_th(i,1) + n_rap(i,1); %tous les neutrons (thermique+rapide)
+%     n_ret(i,1) = n_ret(i-1,1) + Y(i-1,6)*lambda_PF*NA*dt_gen; %neutrons retardes
   
 end
 
@@ -155,12 +153,21 @@ figure;
 loglog(T,n_th(:,1));
 hold on;
 loglog(T,n_rap(:,1));
-hold on;
-loglog(T,n_ret(:,1));
+% hold on;
+% loglog(T,n_ret(:,1));
 xlabel('Temps [s]');
 ylabel('Population de neutrons [#]');
-%ylabel('Flux de neutrons [#/m^2.s]');
-legend('Neutrons thermiques','Neutrons rapides','Neutrons retardés');
+legend('Thermique','Rapide');
+hold off;
+
+%flux de neutrons
+figure;
+loglog(T,phi_th(:,1));
+hold on;
+loglog(T,phi_rap(:,1));
+xlabel('Temps [s]');
+ylabel('Flux de neutrons [#/m^2.s]');
+legend('Thermique','Rapide');
 hold off;
 
 %puissance
