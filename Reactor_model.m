@@ -27,8 +27,8 @@ v_n_rap = 1000; %vitesse neutron rapide [m/s]
 
 lambda_PF = log(2)/1; %lambda pour PF* = PF + n + 5 MeV
 lambda_rt = log(2)/(5*10^-4); %lambda transition rapide->thermique
-lambda_perte_th = 800; %lambda thermique pour fuites et barres de controle (12)
-lambda_perte_rap = 2000; %lambda rapide pour fuites et barres de controle (65)
+lambda_perte_th = 800; %lambda thermique pour fuites et barres de controle
+lambda_perte_rap = 2000; %lambda rapide pour fuites et barres de controle
 
 E_fis = 200e6 * 1.602176565e-19 * 1e-9; %energie fission [GJ]
 E_PF = 5e6 * 1.602176565e-19 * 1e-9; %energie PF* = PF + n [GJ]
@@ -36,6 +36,9 @@ E_rt = 1e6 * 1.602176565e-19 * 1e-9; %energie transition rapide->thermique [GJ]
 
 P_min = 1; %puissance min [GW]
 P_max = 3; %puissance max [GW]
+P_objectif = 2; %puissance désirée [GW]
+
+Time = 1; %modification de lambda_perte après "Time" seconde(s)
 
 %--------------------------------------------------------------------------
 %%
@@ -80,7 +83,7 @@ Xe135_demi_vie = Demi_vie('Xe135','BetaMinus');
 % Initialisation des vecteurs %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-t_final = 10; %[s]
+t_final = 100; %[s]
 dt_gen = 1e-4;
 T = [0:dt_gen:t_final];
 
@@ -99,7 +102,6 @@ phi_rap(1,1) = n_rap(1,1)*v_n_rap/V; %flux initial [#/m^2.s]
 
 Power = zeros(length(T),1); %puissance [GW]
 Power(1,1) = 0;
-Time = 1; %modification de lambda_perte après "Time" seconde(s)
 
 %--------------------------------------------------------------------------
 %%
@@ -127,21 +129,36 @@ for i = 2:length(T)
     Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
     
     if mod((i-1)*dt_gen/Time,1) == 0 %on verifie si le temps requis s'est ecoule
-        if Power(i,1) <= 2.5
-            if (Power(i,1) - Power(i+1-1/dt_gen,1)) <= 0
-                i
-                lambda_perte_th = lambda_perte_th * 0.5;
-                lambda_perte_rap = lambda_perte_rap * 0.5;
-            elseif (Power(i,1) - Power(i-1/dt_gen,1)) > 0
-
-            end
-        elseif Power(i,1) > 2.5
-            if (Power(i,1) - Power(i-1/dt_gen,1)) <= 0
+        if Power(i,1) < P_min
+            lambda_perte_th = lambda_perte_th * 0.95;
+            lambda_perte_rap = lambda_perte_rap * 0.95;
+        elseif Power(i,1) >= P_min && Power(i,1) < P_max
+            
+            if Power(i,1) < P_objectif
                 
-            elseif (Power(i,1) - Power(i-1/dt_gen,1)) > 0
-                lambda_perte_th = lambda_perte_th / 0.95;
-                lambda_perte_rap = lambda_perte_rap / 0.95;
+                if (Power(i,1) - Power(i-1/dt_gen*Time,1)) > 0
+                    lambda_perte_th = lambda_perte_th / (0.95 * (P_objectif-Power(i,1))/Power(i,1));
+                    lambda_perte_rap = lambda_perte_rap / (0.95 * (P_objectif-Power(i,1))/Power(i,1));
+                elseif (Power(i,1) - Power(i-1/dt_gen*Time,1)) <= 0
+                    lambda_perte_th = lambda_perte_th * (0.95 * (P_objectif-Power(i,1))/Power(i,1));
+                    lambda_perte_rap = lambda_perte_rap * (0.95 * (P_objectif-Power(i,1))/Power(i,1));
+                end
+                
+            elseif Power(i,1) > P_objectif
+                
+                if (Power(i,1) - Power(i-1/dt_gen*Time,1)) > 0
+                    lambda_perte_th = lambda_perte_th / (0.95 * (P_objectif-Power(i,1))/Power(i,1));
+                    lambda_perte_rap = lambda_perte_rap / (0.95 * (P_objectif-Power(i,1))/Power(i,1));
+                elseif (Power(i,1) - Power(i-1/dt_gen*Time,1)) <= 0
+                    lambda_perte_th = lambda_perte_th * (0.95 * (P_objectif-Power(i,1))/Power(i,1));
+                    lambda_perte_rap = lambda_perte_rap * (0.95 * (P_objectif-Power(i,1))/Power(i,1));
+                end
+                
             end
+            
+        elseif Power(i,1) >= P_max
+            lambda_perte_th = lambda_perte_th / 0.95;
+            lambda_perte_rap = lambda_perte_rap / 0.95;
         end
     end
     
