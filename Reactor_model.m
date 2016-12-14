@@ -1,6 +1,5 @@
 function [] = Reactor_model(t_final,dt_plot,P_stable,PF_retarded)
 tic
-close all;
 %%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -10,14 +9,14 @@ close all;
 NA = 6.02214076e23; %avogadro
 V = 10; %volume du reacteur [m^3]
 
-m_Utot = 1000; %masse d'uranium [kg]
+m_Utot = 25000; %masse d'uranium [kg]
 m_U235 = m_Utot*0.03; %masse d'uranium 235
 m_U238 = m_Utot*0.97; %masse d'uranium 238
 
 N_U235 = m_U235/molarMass('U235'); %nombre de moles d'U235 [mol]
 N_U238 = m_U238/molarMass('U238'); %nombre de moles d'U238 [mol]
 
-n_0 = 1e15; %nombre initial de neutrons (thermiques)
+n_0 = 1e10; %nombre initial de neutrons (thermiques)
 
 E_n_th = 0.025; %energie neutron thermique [eV]
 E_n_rap = 1e6; %energie neutron rapide [eV]
@@ -25,10 +24,13 @@ E_n_rap = 1e6; %energie neutron rapide [eV]
 v_n_th = 10; %vitesse neutron thermique [m/s]
 v_n_rap = 1000; %vitesse neutron rapide [m/s]
 
-lambda_PF = log(2)/1; %lambda pour PF* = PF + n + 5 MeV
+T_PF = 1; %temps de demi-vie pour PF* = PF + n + 5 MeV
+lambda_PF = log(2)/T_PF; %lambda pour PF* = PF + n + 5 MeV
 lambda_rt = log(2)/(5*10^-4); %lambda transition rapide->thermique
-lambda_perte_th = 800; %lambda thermique pour fuites et barres de controle
-lambda_perte_rap = 2000; %lambda rapide pour fuites et barres de controle
+%800
+lambda_perte_th = 100; %lambda thermique pour fuites et barres de controle
+%2000
+lambda_perte_rap = 200; %lambda rapide pour fuites et barres de controle
 
 E_fis = 200e6 * 1.602176565e-19 * 1e-9; %energie fission [GJ]
 E_PF = 5e6 * 1.602176565e-19 * 1e-9; %energie PF* = PF + n [GJ]
@@ -36,9 +38,6 @@ E_rt = 1e6 * 1.602176565e-19 * 1e-9; %energie transition rapide->thermique [GJ]
 
 P_min = 1; %puissance min [GW]
 P_max = 3; %puissance max [GW]
-P_objectif = 2; %puissance désirée [GW]
-
-Time = 1; %modification de lambda_perte après "Time" seconde(s)
 
 %--------------------------------------------------------------------------
 %%
@@ -112,54 +111,44 @@ Power(1,1) = 0;
 
 for i = 2:length(T)
     
-    Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1))*dt_gen;
-    Y(i,2) = Y(i-1,2) + (- Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1))*dt_gen;
-    Y(i,3) = Y(i-1,3) + (Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,3)*log(2)/U239_demi_vie)*dt_gen;
-    Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/U239_demi_vie - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,4)*log(2)/Np239_demi_vie)*dt_gen; 
-    Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/Np239_demi_vie - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*dt_gen;
-    Y(i,6) = Y(i-1,6) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*0.95*dt_gen - Y(i-1,6)*lambda_PF*dt_gen;
-    Y(i,7) = Y(i-1,7) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*0.05*dt_gen + (- Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) - Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
-    Y(i,8) = Y(i-1,8) + (Y(i-1,6)*lambda_PF + Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) + Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) + Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
+    for j = 1:1
+        
+        Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1))*dt_gen;
+        Y(i,2) = Y(i-1,2) + (- Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1))*dt_gen;
+        Y(i,3) = Y(i-1,3) + (Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,3)*log(2)/U239_demi_vie)*dt_gen;
+        Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/U239_demi_vie - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,4)*log(2)/Np239_demi_vie)*dt_gen;
+        Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/Np239_demi_vie - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*dt_gen;
+        Y(i,6) = Y(i-1,6) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*0.95*dt_gen - Y(i-1,6)*lambda_PF*dt_gen;
+        Y(i,7) = Y(i-1,7) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*0.05*dt_gen + (- Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) - Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
+        Y(i,8) = Y(i-1,8) + (Y(i-1,6)*lambda_PF + Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) + Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) + Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
+        
+        n_th(i,1) = n_th(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,6)*lambda_PF)*NA*dt_gen + (n_rap(i-1,1)*lambda_rt - n_th(i-1,1)*lambda_perte_th)*dt_gen;
+        phi_th(i,1) = n_th(i,1)*v_n_th/V;
+        n_rap(i,1) = n_rap(i-1,1) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1))*2*NA*dt_gen + (Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1))*NA*dt_gen + (- n_rap(i-1,1)*lambda_rt - n_rap(i-1,1)*lambda_perte_rap)*dt_gen;
+        phi_rap(i,1) = n_rap(i,1)*v_n_rap/V;
+        
+        Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
     
-    n_th(i,1) = n_th(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,6)*lambda_PF)*NA*dt_gen + (n_rap(i-1,1)*lambda_rt - n_th(i-1,1)*lambda_perte_th)*dt_gen;
-    phi_th(i,1) = n_th(i,1)*v_n_th/V;
-    n_rap(i,1) = n_rap(i-1,1) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1))*2*NA*dt_gen + (Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1))*NA*dt_gen + (- n_rap(i-1,1)*lambda_rt - n_rap(i-1,1)*lambda_perte_rap)*dt_gen;
-    phi_rap(i,1) = n_rap(i,1)*v_n_rap/V;
-    
-    Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
-    
-    if mod((i-1)*dt_gen/Time,1) == 0 %on verifie si le temps requis s'est ecoule
-        if Power(i,1) < P_min
-            lambda_perte_th = lambda_perte_th * 0.95;
-            lambda_perte_rap = lambda_perte_rap * 0.95;
-        elseif Power(i,1) >= P_min && Power(i,1) < P_max
-            
-            if Power(i,1) < P_objectif
-                
-                if (Power(i,1) - Power(i-1/dt_gen*Time,1)) > 0
-                    lambda_perte_th = lambda_perte_th / (0.95 * (P_objectif-Power(i,1))/Power(i,1));
-                    lambda_perte_rap = lambda_perte_rap / (0.95 * (P_objectif-Power(i,1))/Power(i,1));
-                elseif (Power(i,1) - Power(i-1/dt_gen*Time,1)) <= 0
-                    lambda_perte_th = lambda_perte_th * (0.95 * (P_objectif-Power(i,1))/Power(i,1));
-                    lambda_perte_rap = lambda_perte_rap * (0.95 * (P_objectif-Power(i,1))/Power(i,1));
-                end
-                
-            elseif Power(i,1) > P_objectif
-                
-                if (Power(i,1) - Power(i-1/dt_gen*Time,1)) > 0
-                    lambda_perte_th = lambda_perte_th / (0.95 * (P_objectif-Power(i,1))/Power(i,1));
-                    lambda_perte_rap = lambda_perte_rap / (0.95 * (P_objectif-Power(i,1))/Power(i,1));
-                elseif (Power(i,1) - Power(i-1/dt_gen*Time,1)) <= 0
-                    lambda_perte_th = lambda_perte_th * (0.95 * (P_objectif-Power(i,1))/Power(i,1));
-                    lambda_perte_rap = lambda_perte_rap * (0.95 * (P_objectif-Power(i,1))/Power(i,1));
-                end
-                
-            end
-            
-        elseif Power(i,1) >= P_max
-            lambda_perte_th = lambda_perte_th / 0.95;
-            lambda_perte_rap = lambda_perte_rap / 0.95;
+        phi_th(i-1,1) = (phi_th(i-1,1) + phi_th(i,1))/2;
+        phi_rap(i-1,1) = (phi_rap(i-1,1) + phi_rap(i,1))/2;
+        
+        if T(i) == 5
+            lambda_perte_th = 200;
+            lambda_perte_rap = 400;
         end
+        
+        if mod(T(i),1) == 0
+            if Power(i,1) >= P_min
+                if Power(i,1)-Power(i-1e4,1) > 0
+                    lambda_perte_th = lambda_perte_th * (1 + 0.5*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                    lambda_perte_rap = lambda_perte_rap * (1 + 0.5*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                elseif Power(i,1)-Power(i-1e4,1) < 0
+                    lambda_perte_th = lambda_perte_th * (1 - 0.5*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                    lambda_perte_rap = lambda_perte_rap * (1 - 0.5*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                end
+            end
+        end
+
     end
     
 end
