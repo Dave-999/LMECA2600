@@ -7,6 +7,8 @@ tic
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 NA = 6.02214076e23; %avogadro
+eVToJoule = 1.60218e-19; % Conversion eV en J
+
 V = 10; %volume du reacteur [m^3]
 
 m_Utot = 25000; %masse d'uranium [kg]
@@ -16,25 +18,25 @@ m_U238 = m_Utot*0.97; %masse d'uranium 238
 N_U235 = m_U235/molarMass('U235'); %nombre de moles d'U235 [mol]
 N_U238 = m_U238/molarMass('U238'); %nombre de moles d'U238 [mol]
 
-n_0 = 1e10; %nombre initial de neutrons (thermiques)
+n_0 = 1e15; %nombre initial de neutrons (thermiques)
 
 E_n_th = 0.025; %energie neutron thermique [eV]
 E_n_rap = 1e6; %energie neutron rapide [eV]
 
-v_n_th = 10; %vitesse neutron thermique [m/s]
-v_n_rap = 1000; %vitesse neutron rapide [m/s]
+m_neutron = 1.67493e-27; %masse neutron [kg]
 
-T_PF = 1; %temps de demi-vie pour PF* = PF + n + 5 MeV
+v_n_th = 10; %sqrt(E_n_th*eVToJoule*2/m_neutron); %vitesse neutron thermique [m/s]
+v_n_rap = 1000; %sqrt(E_n_rap*eVToJoule*2/m_neutron); %vitesse neutron rapide [m/s]
+
+T_PF = 7; %temps de demi-vie pour PF* = PF + n + 5 MeV
 lambda_PF = log(2)/T_PF; %lambda pour PF* = PF + n + 5 MeV
-lambda_rt = log(2)/(5*10^-4); %lambda transition rapide->thermique
-%800
-lambda_perte_th = 100; %lambda thermique pour fuites et barres de controle
-%2000
-lambda_perte_rap = 200; %lambda rapide pour fuites et barres de controle
+lambda_rt = log(2)/(5e-4); %lambda transition rapide->thermique
+lambda_perte_th = 130; %lambda thermique pour fuites et barres de controle
+lambda_perte_rap = 260; %lambda rapide pour fuites et barres de controle
 
-E_fis = 200e6 * 1.602176565e-19 * 1e-9; %energie fission [GJ]
-E_PF = 5e6 * 1.602176565e-19 * 1e-9; %energie PF* = PF + n [GJ]
-E_rt = 1e6 * 1.602176565e-19 * 1e-9; %energie transition rapide->thermique [GJ]
+E_fis = 200e6 * eVToJoule * 1e-9; %energie fission [GJ]
+E_PF = 5e6 * eVToJoule * 1e-9; %energie PF* = PF + n [GJ]
+E_rt = 1e6 * eVToJoule * 1e-9; %energie transition rapide->thermique [GJ]
 
 P_min = 1; %puissance min [GW]
 P_max = 3; %puissance max [GW]
@@ -82,9 +84,9 @@ Xe135_demi_vie = Demi_vie('Xe135','BetaMinus');
 % Initialisation des vecteurs %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-t_final = 100; %[s]
+t_final = 200; %[s]
 dt_gen = 1e-4;
-T = [0:dt_gen:t_final];
+T = (0:dt_gen:t_final);
 
 Y = zeros(length(T),8); %U235,U238,U239,Np239,Pu239,PF*,Xe135,PF
 Y(1,:) = [N_U235 N_U238 0 0 0 0 0 0]; %quantites initiales [mol]
@@ -132,19 +134,23 @@ for i = 2:length(T)
         phi_th(i-1,1) = (phi_th(i-1,1) + phi_th(i,1))/2;
         phi_rap(i-1,1) = (phi_rap(i-1,1) + phi_rap(i,1))/2;
         
-        if T(i) == 5
-            lambda_perte_th = 200;
-            lambda_perte_rap = 400;
-        end
+%         if T(i) == 1
+%             lambda_perte_th = 130;
+%             lambda_perte_rap = 260;
+%         end
         
         if mod(T(i),1) == 0
+            if Power(i,1) < P_min
+                lambda_perte_th = lambda_perte_th * 0.95;
+                lambda_perte_rap = lambda_perte_rap * 0.95;
+            end
             if Power(i,1) >= P_min
                 if Power(i,1)-Power(i-1e4,1) > 0
-                    lambda_perte_th = lambda_perte_th * (1 + 0.5*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
-                    lambda_perte_rap = lambda_perte_rap * (1 + 0.5*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                    lambda_perte_th = lambda_perte_th * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                    lambda_perte_rap = lambda_perte_rap * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
                 elseif Power(i,1)-Power(i-1e4,1) < 0
-                    lambda_perte_th = lambda_perte_th * (1 - 0.5*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
-                    lambda_perte_rap = lambda_perte_rap * (1 - 0.5*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                    lambda_perte_th = lambda_perte_th * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                    lambda_perte_rap = lambda_perte_rap * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
                 end
             end
         end
