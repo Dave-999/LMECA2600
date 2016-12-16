@@ -123,8 +123,6 @@ Power(1,1) = Power_init; %puissance initiale [GW]
 % Equations cinetiques %
 %%%%%%%%%%%%%%%%%%%%%%%%
 
-%Equations detaillees dans le rapport
-
 for i = 2:length(T)
     
     for j = 1:1
@@ -164,11 +162,9 @@ for i = 2:length(T)
             end
         end
         
-    end %fin boucle itération flux
+    end %Fin itération flux
     
-end %fin boucle lenght(T)
-
-
+end
 
 %--------------------------------------------------------------------------
 %%
