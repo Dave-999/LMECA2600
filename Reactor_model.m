@@ -1,4 +1,4 @@
-function [Lambda_BC_thermal Lambda_BC_fast U5_burning_rate] = Reactor_model(t_final,n_th_init ,n_fa_init ,m_tot,U5_pour, U8_pour,Pu9_pour,Poison_pour)
+function [Lambda_BC_thermal, Lambda_BC_fast, U5_burning_rate] = Reactor_model(t_final,n_th_init ,n_fa_init ,m_tot,U5_pour, U8_pour,Pu9_pour,Poison_pour)
 tic
 %%
 
@@ -6,8 +6,7 @@ tic
 % Donnees et hypotheses %
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
-if nargin == 0
-    
+if nargin == 0  
     t_final = 100; %temps de simulation [s]
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
@@ -15,8 +14,7 @@ if nargin == 0
     U5_pour = 3; %pourcentage massique d'U235 dans le combustible [%]
     U8_pour = 97; %pourcentage massique d'U238 dans le combustible [%]
     Pu9_pour = 0; %pourcentage massique de Pu239 dans le combustible [%]
-    Poison_pour = 5; %pourcentage molaire de PF*_poison dans les produits de fission [%]
-    
+    Poison_pour = 5; %pourcentage molaire de PF*_poison dans les produits de fission [%] 
 end
 
 NA = 6.02214076e23; %nombre d'Avogadro
@@ -37,8 +35,8 @@ PF_init = 0; %nombre initial de moles de PF [mol/l]
 
 E_th = 0.025; %energie neutron thermique [eV]
 E_rap = 1e6; %energie neutron rapide [eV]
-v_th = sqrt(E_th*eV_Joule*2/m_neutron); %vitesse neutron thermique [m/s]
-v_rap = sqrt(E_rap*eV_Joule*2/m_neutron); %vitesse neutron rapide [m/s]
+v_th = 10; %sqrt(E_th*eV_Joule*2/m_neutron); %vitesse neutron thermique [m/s]
+v_rap = 1000; %sqrt(E_rap*eV_Joule*2/m_neutron); %vitesse neutron rapide [m/s]
 
 T_PF = 7; %temps de demi-vie pour PF* = PF + n + 5 MeV
 lambda_PF = log(2)/T_PF; %lambda pour PF* = PF + n + 5 MeV
@@ -98,7 +96,7 @@ Xe135_demi_vie = Demi_vie('Xe135','BetaMinus');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 dt_gen = 1e-4;
-T = (0:dt_gen:t_final);
+T = 0:dt_gen:t_final;
 
 Y = zeros(length(T),8); %U235,U238,U239,Np239,Pu239,PF*,PF*_poison,PF
 Y(1,:) = [U235_init U238_init U239_init Np239_init Pu239_init PF_star_init PF_star_poison_init PF_init]; %quantites initiales [mol]
@@ -168,7 +166,7 @@ for i = 2:length(T)
     
 end %fin boucle lenght(T)
 
-
+U5_burning_rate = Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1);
 
 %--------------------------------------------------------------------------
 %%
