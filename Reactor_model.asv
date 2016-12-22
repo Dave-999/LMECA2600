@@ -10,17 +10,11 @@ if nargin == 0
     t_final = 10; %temps de simulation [s]
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
-    V = 10; %volume du reacteur [m^3]
     m_tot = 25; %masse totale de combustible [kg]
     U5_pour = 3; %pourcentage massique d'U235 dans le combustible [%]
     U8_pour = 97; %pourcentage massique d'U238 dans le combustible [%]
     Pu9_pour = 0; %pourcentage massique de Pu239 dans le combustible [%]
     Poison_pour = 5; %pourcentage molaire de PF*_poison dans les produits de fission [%]
-    
-    T_PF = 1; %temps de demi-vie pour PF* = PF + n + 5 MeV
-    T_rt = 5e-4; %temps de demi-vie pour n_rap -> n_th
-    Lambda_BC_thermal = 40; %lambda thermique pour les barres de controle [50-100]
-    Lambda_BC_fast = 600; %lambda rapide pour les barres de controle [600-2000]
 end
 
 NA = 6.02214076e23; %nombre d'Avogadro
@@ -28,6 +22,7 @@ m_neutron = 1.67493e-27; %masse neutron [kg]
 eV_Joule = 1.60218e-19; %conversion eV en J
 W_GW = 1e-9; %conversion W en GW
 barn_m2 = 1e-28; %conversion barn en m2
+V = 10; %volume du reacteur [m^3]
 
 U235_init = m_tot*U5_pour/100/molarMass('U235'); %nombre initial de moles de U235 [mol/l]
 U238_init = m_tot*U8_pour/100/molarMass('U238'); %nombre initial de moles de U238 [mol/l]
@@ -43,8 +38,11 @@ E_rap = 1e6; %energie neutron rapide [eV]
 v_th = sqrt(E_th*eV_Joule*2/m_neutron); %vitesse neutron thermique [m/s]
 v_rap = sqrt(E_rap*eV_Joule*2/m_neutron); %vitesse neutron rapide [m/s]
 
+T_PF = 1; %temps de demi-vie pour PF* = PF + n + 5 MeV
 lambda_PF = log(2)/T_PF; %lambda pour PF* = PF + n + 5 MeV
-lambda_rt = log(2)/T_rt; %lambda transition rapide->thermique
+lambda_rt = log(2)/(5e-4); %lambda transition rapide->thermique
+Lambda_BC_thermal = 40; %lambda thermique pour les barres de controle [50-100]
+Lambda_BC_fast = 600; %lambda rapide pour les barres de controle [600-2000]
 
 E_fis = 200e6 * eV_Joule * W_GW; %energie fission [GJ]
 E_PF = 5e6 * eV_Joule * W_GW; %energie PF* = PF + n [GJ]
