@@ -7,7 +7,7 @@ tic
 %%%%%%%%%%%%%%
 
 if nargin == 0  
-    t_final = 100; %temps de simulation [s]
+    t_final = 200; %temps de simulation [s]
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
     m_tot = 25; %masse totale de combustible [kg]
@@ -59,8 +59,7 @@ Lambda_BC_fast_min = 600; %lambda rapide min
 Lambda_BC_fast_max = 2000; %lambda rapide min
 Lambda_BC_fast = 600; %lambda rapide initial
 
-Lambda_corr_max = 0.05; %Correction max du lambda : 5%/s
-Lambda_corr = 0.05; %Correction du lambda : 5%/s
+Lambda_corr = 0.05; %Correction max du lambda : 5%/s
 
 E_fis = 200e6 * eV_Joule * W_GW; %energie fission [GJ]
 E_PF = 5e6 * eV_Joule * W_GW; %energie PF* = PF + n [GJ]
@@ -169,10 +168,42 @@ for i = 2:length(T)
         Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
 
         %calcul des barres de controle 
-        if mod(T(i),1) == 0
+        if mod(T(i),1) == 0 %modification uniquement toutes les secondes
             
-            
-            
+            if Power(i,1) > Power_max
+                
+                if Power(i,1) >= Power(i-1e4)
+                    
+                Lambda_BC_thermal = Lambda_BC_thermal / (1-Lambda_corr);
+                Lambda_BC_thermal = max(Lambda_BC_thermal,Lambda_BC_thermal_min);
+                Lambda_BC_thermal = min(Lambda_BC_thermal,Lambda_BC_thermal_max);
+                
+                Lambda_BC_fast = Lambda_BC_fast / (1-Lambda_corr);
+                Lambda_BC_fast = max(Lambda_BC_fast,Lambda_BC_fast_min);
+                Lambda_BC_fast = min(Lambda_BC_fast,Lambda_BC_fast_max);
+                
+                Lambda_corr = Lambda_corr * 0.9;
+                
+                end
+                
+            elseif Power(i,1) < Power_max
+                
+                if Power(i,1) <= Power(i-1e4)
+                    
+                    Lambda_BC_thermal = Lambda_BC_thermal * (1-Lambda_corr);
+                    Lambda_BC_thermal = max(Lambda_BC_thermal,Lambda_BC_thermal_min);
+                    Lambda_BC_thermal = min(Lambda_BC_thermal,Lambda_BC_thermal_max);
+                    
+                    Lambda_BC_fast = Lambda_BC_fast * (1-Lambda_corr);
+                    Lambda_BC_fast = max(Lambda_BC_fast,Lambda_BC_fast_min);
+                    Lambda_BC_fast = min(Lambda_BC_fast,Lambda_BC_fast_max);
+                    
+                    Lambda_corr = Lambda_corr * 0.9;
+                    
+                end
+                
+            end
+ 
         end
         
         %consommation d'U235
