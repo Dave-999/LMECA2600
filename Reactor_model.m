@@ -176,21 +176,19 @@ for i = 2:length(T)
 
         %calcul des barres de controle 
         
-        if Power(i,1) > 0.01
-            if Power(i,1)-Power(i-1,1) >= 0
-                
-                Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1,1) * (1-Lambda_corr); 
-                Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1,1) * (1-Lambda_corr);
-                Lambda_corr = Lambda_corr * 0.99;
-                
+        if mod(T(i),1) == 0
+            if Power(i,1) < Power_min
+                lambda_perte_th = lambda_perte_th * 0.95;
+                lambda_perte_rap = lambda_perte_rap * 0.95;
             end
-        elseif Power(i,1) < 0.01
-            if Power(i,1)-Power(i-1,1) <= 0
-                
-                Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1,1) / (1-Lambda_corr); 
-                Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1,1) / (1-Lambda_corr);
-                Lambda_corr = Lambda_corr * 0.99;
-                
+            if Power(i,1) >= Power_min
+                if Power(i,1)-Power(i-1e4,1) > 0
+                    lambda_perte_th = lambda_perte_th_in * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                    lambda_perte_rap = lambda_perte_rap * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                elseif Power(i,1)-Power(i-1e4,1) < 0
+                    lambda_perte_th = lambda_perte_th * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                    lambda_perte_rap = lambda_perte_rap * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                end
             end
         end
         
