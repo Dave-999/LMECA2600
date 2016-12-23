@@ -207,7 +207,7 @@ for i = 2:length(T)
     
 end %fin boucle lenght(T)
 
-U5_burning_rate = Y(i-1,1)*NA*(U235_sig_fis_th*phi_th(i-1,1) + U235_sig_fis_rap*phi_rap(i-1,1)); %[#/m3.s]
+U5_burning_rate = Y(i-1,1)*molarMass('U235')*(U235_sig_fis_th*phi_th(i-1,1) + U235_sig_fis_rap*phi_rap(i-1,1)); %[#/m3.s]
 
 %--------------------------------------------------------------------------
 %%
