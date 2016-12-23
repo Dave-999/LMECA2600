@@ -30,7 +30,7 @@ end
 dt_gen = 1e-4;
 V = 10; %volume du reacteur [m^3]
 NA = 6.02214076e23; %nombre d'Avogadro
-max_iteration = 1000; %nombre d'iterations max pour la convergence des flux
+max_iteration = 1; %nombre d'iterations max pour la convergence des flux
 threshold = 1000; %tolerance pour la convergence
 
 eV_Joule = 1.60218e-19; %conversion eV en J
@@ -59,6 +59,8 @@ Lambda_BC_thermal_min = 50; %lambda thermique min
 Lambda_BC_thermal_max = 100; %lambda thermique max
 Lambda_BC_fast_min = 600; %lambda rapide min
 Lambda_BC_fast_max = 2000; %lambda rapide min
+Lambda_corr_max = 0.05; %Correction max du lambda : 5%/s
+Lambda_corr = Lambda_corr_max; %Correction initiale du lambda
 
 E_fis = 200e6 * eV_Joule * W_GW; %energie fission [GJ]
 E_PF = 5e6 * eV_Joule * W_GW; %energie PF* = PF + n [GJ]
@@ -67,6 +69,8 @@ E_rt = 1e6 * eV_Joule * W_GW; %energie transition rapide->thermique [GJ]
 Power_init = 0; %puissance initiale [GW]
 Power_min = 1; %puissance min [GW]
 Power_max = 3; %puissance max [GW]
+
+U5_burning_rate_init = 0;
 
 %--------------------------------------------------------------------------
 %%
@@ -134,6 +138,9 @@ Lambda_BC_fast(1,1) = Lambda_BC_fast_init; %lambda rapide initial
 Power = zeros(length(T),1); %puissance [GW]
 Power(1,1) = Power_init; %puissance initiale [GW]
 
+U5_burning_rate = zeros(length(T),1);
+U5_burning_rate(1,1) = U5_burning_rate_init;
+
 %--------------------------------------------------------------------------
 %%
 
@@ -166,18 +173,7 @@ for i = 2:length(T)
         %calcul de la puissance
         Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
 
-        %calcul des barres de controle
-%         if Power(i,1) > 1e-3
-%             count1 = count1 + 1;
-%             if Power(i,1)-Power(i-1,1) > 0
-%                 Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1,1) * (0.95*dt_gen);
-%                 Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1,1) * (0.95*dt_gen);
-%             elseif Power(i,1)-Power(i-1,1) < 0
-%                 Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1,1) / (0.95*dt_gen);
-%                 Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1,1) / (0.95*dt_gen);
-%             elseif count1
-%             end
-        
+        %calcul des barres de controle        
 %         if mod(T(i),1) == 0
 %             if Power(i,1) < Power_min
 %                 Lambda_BC_thermal = Lambda_BC_thermal * 0.95;
@@ -185,14 +181,19 @@ for i = 2:length(T)
 %             end
 %             if Power(i,1) >= Power_min
 %                 if Power(i,1)-Power(i-1e4,1) > 0
-%                     Lambda_BC_thermal = Lambda_BC_thermal * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
-%                     Lambda_BC_fast = Lambda_BC_fast * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+%                     Lambda_BC_thermal = Lambda_BC_thermal * (1-Lambda_corr);
+%                     Lambda_BC_fast = Lambda_BC_fast * (1-Lambda_corr);
+%                     Lambda_corr = Lambda_corr * 0.99;
 %                 elseif Power(i,1)-Power(i-1e4,1) < 0
-%                     Lambda_BC_thermal = Lambda_BC_thermal * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
-%                     Lambda_BC_fast = Lambda_BC_fast * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+%                     Lambda_BC_thermal = Lambda_BC_thermal / (1-Lambda_corr);
+%                     Lambda_BC_fast = Lambda_BC_fast / (1-Lambda_corr);
+%                     Lambda_corr = Lambda_corr * 0.99;
 %                 end
 %             end
 %         end
+        
+        %consommation d'U235
+        U5_burning_rate(i,1) = Y(i-1,1)*molarMass('U235')*(U235_sig_fis_th*phi_th(i-1,1) + U235_sig_fis_rap*phi_rap(i-1,1));
 
         %convergence des flux de neutrons
         phi_th(i-1,1) = (phi_th(i-1,1) + phi_th(i,1))/2;
@@ -207,7 +208,7 @@ for i = 2:length(T)
     
 end %fin boucle lenght(T)
 
-U5_burning_rate = Y(i-1,1)*molarMass('U235')*(U235_sig_fis_th*phi_th(i-1,1) + U235_sig_fis_rap*phi_rap(i-1,1)); %[#/m3.s]
+
 
 %--------------------------------------------------------------------------
 %%
@@ -330,7 +331,7 @@ loglog(T,Lambda_BC_thermal(:,1),'k');
 hold on;
 loglog(T,Lambda_BC_fast(:,1),'k');
 xlabel('Temps [s]');
-ylabel('\lambda_{BC} [s^{-1}]');
+ylabel('\lambda_{barre de contrôle} [s^{-1}]');
 legend('Thermique','Rapide');
 hold off;
 
@@ -340,9 +341,21 @@ plot(T,Lambda_BC_thermal(:,1),'k');
 hold on;
 plot(T,Lambda_BC_fast(:,1),'k');
 xlabel('Temps [s]');
-ylabel('\lambda_{BC} [s^{-1}]');
+ylabel('\lambda_{barre de contrôle} [s^{-1}]');
 legend('Thermique','Rapide');
 hold off;
+
+%Consommation d'U5 - loglog
+figure;
+loglog(T,U5_burning_rate(:,1),'r');
+xlabel('Temps [s]');
+ylabel('Consommation d''U^{235} [kg/s]');
+
+%Consommation d'U5 - plot
+figure;
+plot(T,U5_burning_rate(:,1),'r');
+xlabel('Temps [s]');
+ylabel('Consommation d''U^{235} [kg/s]');
 
 
 %--------------------------------------------------------------------------
