@@ -7,7 +7,7 @@ tic
 %%%%%%%%%%%%%%
 
 if nargin == 0  
-    t_final = 300; %temps de simulation [s]
+    t_final = 150; %temps de simulation [s]
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
     m_tot = 25; %masse totale de combustible [kg]
@@ -131,9 +131,9 @@ phi_th(1,1) = n_th(1,1)*v_th/V; %flux initial [#/m^2.s]
 phi_rap = zeros(length(T),1); %flux de neutrons rapides
 phi_rap(1,1) = n_rap(1,1)*v_rap/V; %flux initial [#/m^2.s]
 
-Lambda_BC_thermal = zeros(t_final+1,1); %lambda thermique pour les barres de controle [50-100]
+Lambda_BC_thermal = zeros(length(T),1); %lambda thermique pour les barres de controle [50-100]
 Lambda_BC_thermal(1,1) = Lambda_BC_thermal_init; %lambda thermique initial
-Lambda_BC_fast = zeros(t_final+1,1); %lambda rapide pour les barres de controle [600-2000]
+Lambda_BC_fast = zeros(length(T),1); %lambda rapide pour les barres de controle [600-2000]
 Lambda_BC_fast(1,1) = Lambda_BC_fast_init; %lambda rapide initial
 
 Power = zeros(length(T),1); %puissance [GW]
@@ -166,34 +166,53 @@ for i = 2:length(T)
         Y(i,8) = Y(i-1,8) + (Y(i-1,6)*lambda_PF + Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) + Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) + Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
         
         %calculs des neutrons et flux de neutrons
-        n_th(i,1) = n_th(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,6)*lambda_PF - Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1))*NA*dt_gen + (n_rap(i-1,1)*lambda_rt - n_th(i-1,1)*Lambda_BC_thermal_init)*dt_gen;
+        n_th(i,1) = n_th(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,6)*lambda_PF - Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1))*NA*dt_gen + (n_rap(i-1,1)*lambda_rt - n_th(i-1,1)*Lambda_BC_thermal(i-1,1))*dt_gen;
         phi_th(i,1) = n_th(i,1)*v_th/V;
-        n_rap(i,1) = n_rap(i-1,1) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1))*2*NA*dt_gen + (Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1))*NA*dt_gen + (- n_rap(i-1,1)*lambda_rt - n_rap(i-1,1)*Lambda_BC_fast_init)*dt_gen;
+        n_rap(i,1) = n_rap(i-1,1) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1))*2*NA*dt_gen + (Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1))*NA*dt_gen + (- n_rap(i-1,1)*lambda_rt - n_rap(i-1,1)*Lambda_BC_fast(i-1,1))*dt_gen;
         phi_rap(i,1) = n_rap(i,1)*v_rap/V;
         
         %calcul de la puissance
         Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
 
-        %calcul des barres de controle        
-        if mod(T(i),1) == 0
-            if Power(i,1) > 0.01
-                if Power(i,1)-Power(i-1e4,1) >= 0
-                    
-                    Lambda_BC_thermal(T(i),1) = Lambda_BC_thermal(T(i)-1,1) * (1-Lambda_corr);
-                    Lambda_BC_fast(T(i),1) = Lambda_BC_fast(T(i)-1,1) * (1-Lambda_corr);
-                    Lambda_corr = Lambda_corr * 0.99;
-                    
-                end
-            elseif Power(i,1) < 0.01
-                if Power(i,1)-Power(i-1e4,1) <= 0
-                    
-                    Lambda_BC_thermal(T(i),1) = Lambda_BC_thermal(T(i)-1,1) / (1-Lambda_corr);
-                    Lambda_BC_fast(T(i),1) = Lambda_BC_fast(T(i)-1,1) / (1-Lambda_corr);
-                    Lambda_corr = Lambda_corr * 0.99;
-                    
-                end
+        %calcul des barres de controle 
+        
+        if Power(i,1) > 0.01
+            if Power(i,1)-Power(i-1,1) >= 0
+                
+                Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1,1) * (1-Lambda_corr); 
+                Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1,1) * (1-Lambda_corr);
+                Lambda_corr = Lambda_corr * 0.99;
+                
+            end
+        elseif Power(i,1) < 0.01
+            if Power(i,1)-Power(i-1,1) <= 0
+                
+                Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1,1) / (1-Lambda_corr); 
+                Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1,1) / (1-Lambda_corr);
+                Lambda_corr = Lambda_corr * 0.99;
+                
             end
         end
+        
+%         if mod(T(i),1) == 0
+%             if Power(i,1) > 0.01
+%                 if Power(i,1)-Power(i-1e4,1) >= 0
+%                     
+%                     Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1e4,1) * (1-Lambda_corr);
+%                     Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1e4,1) * (1-Lambda_corr);
+%                     Lambda_corr = Lambda_corr * 0.99;
+%                     
+%                 end
+%             elseif Power(i,1) < 0.01
+%                 if Power(i,1)-Power(i-1e4,1) <= 0
+%                     
+%                     Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1e4,1) / (1-Lambda_corr);
+%                     Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1e4,1) / (1-Lambda_corr);
+%                     Lambda_corr = Lambda_corr * 0.99;
+%                     
+%                 end
+%             end
+%         end
         
         %consommation d'U235
         U5_burning_rate(i,1) = Y(i-1,1)*molarMass('U235')*(U235_sig_fis_th*phi_th(i-1,1) + U235_sig_fis_rap*phi_rap(i-1,1));
@@ -330,9 +349,9 @@ hold off;
 
 %barre de controle - loglog
 figure;
-loglog(t,Lambda_BC_thermal(:,1),'k');
+loglog(T,Lambda_BC_thermal(:,1),'k');
 hold on;
-loglog(t,Lambda_BC_fast(:,1),'k');
+loglog(T,Lambda_BC_fast(:,1),'k');
 xlabel('Temps [s]');
 ylabel('\lambda_{barre de contrôle} [s^{-1}]');
 legend('Thermique','Rapide');
@@ -340,9 +359,9 @@ hold off;
 
 %barre de controle - plot
 figure;
-plot(t,Lambda_BC_thermal(:,1),'k');
+plot(T,Lambda_BC_thermal(:,1),'k');
 hold on;
-plot(t,Lambda_BC_fast(:,1),'k');
+plot(T,Lambda_BC_fast(:,1),'k');
 xlabel('Temps [s]');
 ylabel('\lambda_{barre de contrôle} [s^{-1}]');
 legend('Thermique','Rapide');
