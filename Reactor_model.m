@@ -7,7 +7,7 @@ tic
 %%%%%%%%%%%%%%
 
 if nargin == 0  
-    t_final = 1000; %temps de simulation [s]
+    t_final = 100; %temps de simulation [s]
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
     m_tot = 25; %masse totale de combustible [kg]
@@ -46,7 +46,7 @@ m_neutron = 1.67493e-27; %masse neutron [kg]
 v_th = sqrt(E_th*eV_Joule*2/m_neutron); %vitesse neutron thermique [m/s]
 v_rap = sqrt(E_rap*eV_Joule*2/m_neutron); %vitesse neutron rapide [m/s]
 
-T_PF = 7; %temps de demi-vie pour PF* = PF + n + 5 MeV
+T_PF = 1; %temps de demi-vie pour PF* = PF + n + 5 MeV
 lambda_PF = log(2)/T_PF; %lambda pour PF* = PF + n + 5 MeV
 T_rt = 5e-4; %temps de demi-vie pour n_rap -> n_th
 lambda_rt = log(2)/T_rt; %lambda transition rapide->thermique
@@ -220,7 +220,8 @@ for i = 2:length(T)
     
 end %fin boucle lenght(T)
 
-
+Lambda_BC_thermal
+        Lambda_BC_fast
 
 %--------------------------------------------------------------------------
 %%
@@ -348,7 +349,6 @@ figure;
 plot(T,U5_burning_rate(:,1),'r');
 xlabel('Temps [s]');
 ylabel('Consommation d''U^{235} [kg/s]');
-
 
 %--------------------------------------------------------------------------
 %%
