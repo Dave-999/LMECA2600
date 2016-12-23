@@ -1,30 +1,38 @@
-function [Lambda_BC_thermal, Lambda_BC_fast, U5_burning_rate] = Reactor_model(t_final,n_th_init ,n_fa_init ,m_tot,U5_pour, U8_pour,Pu9_pour,Poison_pour)
+function [Lambda_BC_thermal_init, Lambda_BC_fast_init, U5_burning_rate] = Reactor_model(t_final,n_th_init ,n_fa_init ,m_tot,U5_pour, U8_pour,Pu9_pour,Poison_pour)
 tic
 %%
 
-%%%%%%%%%%%%%%%%%%%%%%%%%
-% Donnees et hypotheses %
-%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%
+% Parametres %
+%%%%%%%%%%%%%%
 
 if nargin == 0  
-    t_final = 10; %temps de simulation [s]
+    t_final = 10; %temps de simulation [s] -> temps de compilation ~ t_final/4
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
-    V = 10; %volume du reacteur [m^3]
     m_tot = 25; %masse totale de combustible [kg]
     U5_pour = 3; %pourcentage massique d'U235 dans le combustible [%]
     U8_pour = 97; %pourcentage massique d'U238 dans le combustible [%]
     Pu9_pour = 0; %pourcentage massique de Pu239 dans le combustible [%]
     Poison_pour = 5; %pourcentage molaire de PF*_poison dans les produits de fission [%]
     
+    %PARAMETRES ?
     T_PF = 1; %temps de demi-vie pour PF* = PF + n + 5 MeV
     T_rt = 5e-4; %temps de demi-vie pour n_rap -> n_th
-    Lambda_BC_thermal = 40; %lambda thermique pour les barres de controle [50-100]
-    Lambda_BC_fast = 600; %lambda rapide pour les barres de controle [600-2000]
+    Lambda_BC_thermal_init = 50; %lambda thermique initial
+    Lambda_BC_fast_init = 600; %lambda rapide initial
 end
 
+%%%%%%%%%%%
+% Donnees %
+%%%%%%%%%%%
+
+dt_gen = 1e-4;
+V = 10; %volume du reacteur [m^3]
 NA = 6.02214076e23; %nombre d'Avogadro
-m_neutron = 1.67493e-27; %masse neutron [kg]
+max_iteration = 1; %nombre d'iterations max pour la convergence des flux
+threshold = 1000; %tolerance pour la convergence
+
 eV_Joule = 1.60218e-19; %conversion eV en J
 W_GW = 1e-9; %conversion W en GW
 barn_m2 = 1e-28; %conversion barn en m2
@@ -40,19 +48,25 @@ PF_init = 0; %nombre initial de moles de PF [mol/l]
 
 E_th = 0.025; %energie neutron thermique [eV]
 E_rap = 1e6; %energie neutron rapide [eV]
+m_neutron = 1.67493e-27; %masse neutron [kg]
 v_th = sqrt(E_th*eV_Joule*2/m_neutron); %vitesse neutron thermique [m/s]
 v_rap = sqrt(E_rap*eV_Joule*2/m_neutron); %vitesse neutron rapide [m/s]
 
 lambda_PF = log(2)/T_PF; %lambda pour PF* = PF + n + 5 MeV
 lambda_rt = log(2)/T_rt; %lambda transition rapide->thermique
 
+Lambda_BC_thermal_min = 50; %lambda thermique min
+Lambda_BC_thermal_max = 100; %lambda thermique max
+Lambda_BC_fast_min = 600; %lambda rapide min
+Lambda_BC_fast_max = 2000; %lambda rapide min
+
 E_fis = 200e6 * eV_Joule * W_GW; %energie fission [GJ]
 E_PF = 5e6 * eV_Joule * W_GW; %energie PF* = PF + n [GJ]
 E_rt = 1e6 * eV_Joule * W_GW; %energie transition rapide->thermique [GJ]
 
 Power_init = 0; %puissance initiale [GW]
-P_min = 1; %puissance min [GW]
-P_max = 3; %puissance max [GW]
+Power_min = 1; %puissance min [GW]
+Power_max = 3; %puissance max [GW]
 
 %--------------------------------------------------------------------------
 %%
@@ -97,7 +111,6 @@ Xe135_demi_vie = Demi_vie('Xe135','BetaMinus');
 % Initialisation des vecteurs %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-dt_gen = 1e-4;
 T = 0:dt_gen:t_final;
 
 Y = zeros(length(T),8); %U235,U238,U239,Np239,Pu239,PF*,PF*_poison,PF
@@ -113,6 +126,11 @@ phi_th(1,1) = n_th(1,1)*v_th/V; %flux initial [#/m^2.s]
 phi_rap = zeros(length(T),1); %flux de neutrons rapides
 phi_rap(1,1) = n_rap(1,1)*v_rap/V; %flux initial [#/m^2.s]
 
+Lambda_BC_thermal = zeros(length(T),1); %lambda thermique pour les barres de controle [50-100]
+Lambda_BC_thermal(1,1) = Lambda_BC_thermal_init; %lambda thermique initial
+Lambda_BC_fast = zeros(length(T),1); %lambda rapide pour les barres de controle [600-2000]
+Lambda_BC_fast(1,1) = Lambda_BC_fast_init; %lambda rapide initial
+
 Power = zeros(length(T),1); %puissance [GW]
 Power(1,1) = Power_init; %puissance initiale [GW]
 
@@ -127,8 +145,9 @@ Power(1,1) = Power_init; %puissance initiale [GW]
 
 for i = 2:length(T)
     
-    for j = 1:1
-        
+    for j = 1:max_iteration %iteration sur les flux de neutrons
+
+        %calculs des actinides et PF
         Y(i,1) = Y(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1))*dt_gen;
         Y(i,2) = Y(i-1,2) + (- Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1))*dt_gen;
         Y(i,3) = Y(i-1,3) + (Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,3)*log(2)/U239_demi_vie)*dt_gen;
@@ -138,48 +157,44 @@ for i = 2:length(T)
         Y(i,7) = Y(i-1,7) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*Poison_pour/100*dt_gen + (- Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) - Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
         Y(i,8) = Y(i-1,8) + (Y(i-1,6)*lambda_PF + Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) + Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) + Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
         
-        n_th(i,1) = n_th(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,6)*lambda_PF)*NA*dt_gen + (n_rap(i-1,1)*lambda_rt - n_th(i-1,1)*Lambda_BC_thermal)*dt_gen;
+        %calculs des neutrons et flux de neutrons
+        n_th(i,1) = n_th(i-1,1) + (- Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,6)*lambda_PF - Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1))*NA*dt_gen + (n_rap(i-1,1)*lambda_rt - n_th(i-1,1)*Lambda_BC_thermal_init)*dt_gen;
         phi_th(i,1) = n_th(i,1)*v_th/V;
-        n_rap(i,1) = n_rap(i-1,1) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1))*2*NA*dt_gen + (Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1))*NA*dt_gen + (- n_rap(i-1,1)*lambda_rt - n_rap(i-1,1)*Lambda_BC_fast)*dt_gen;
+        n_rap(i,1) = n_rap(i-1,1) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1))*2*NA*dt_gen + (Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1))*NA*dt_gen + (- n_rap(i-1,1)*lambda_rt - n_rap(i-1,1)*Lambda_BC_fast_init)*dt_gen;
         phi_rap(i,1) = n_rap(i,1)*v_rap/V;
         
+        %calcul de la puissance
         Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
-    
-%         phi_th(i-1,1) = (phi_th(i-1,1) + phi_th(i,1))/2;
-%         phi_rap(i-1,1) = (phi_rap(i-1,1) + phi_rap(i,1))/2;
+
+        if mod(T(i),1) == 0
+            if Power(i,1) < Power_min
+                Lambda_BC_thermal = Lambda_BC_thermal * 0.95;
+                Lambda_BC_fast = Lambda_BC_fast * 0.95;
+            end
+            if Power(i,1) >= Power_min
+                if Power(i,1)-Power(i-1e4,1) > 0
+                    Lambda_BC_thermal = Lambda_BC_thermal * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                    Lambda_BC_fast = Lambda_BC_fast * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                elseif Power(i,1)-Power(i-1e4,1) < 0
+                    Lambda_BC_thermal = Lambda_BC_thermal * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                    Lambda_BC_fast = Lambda_BC_fast * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                end
+            end
+        end
+
+        %convergence des flux de neutrons
+        phi_th(i-1,1) = (phi_th(i-1,1) + phi_th(i,1))/2;
+        phi_rap(i-1,1) = (phi_rap(i-1,1) + phi_rap(i,1))/2;
         
-%         u5=Y(i-1,1)*NA
-%         fisu5=Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1)*NA
-%         fisu8=Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) *NA
-%         Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) *NA
-%         Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) *NA
-%         Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1)*NA
-%         Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) *NA
-%         Y(i-1,6)*lambda_PF*NA
-%         n_rap(i-1,1)*lambda_rt 
-%         n_th(i-1,1)*Lambda_BC_thermal
-        
-%         if mod(T(i),1) == 0
-%             if Power(i,1) < P_min
-%                 Lambda_BC_thermal = Lambda_BC_thermal * 0.95;
-%                 Lambda_BC_fast = Lambda_BC_fast * 0.95;
-%             end
-%             if Power(i,1) >= P_min
-%                 if Power(i,1)-Power(i-1e4,1) > 0
-%                     Lambda_BC_thermal = Lambda_BC_thermal * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
-%                     Lambda_BC_fast = Lambda_BC_fast * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
-%                 elseif Power(i,1)-Power(i-1e4,1) < 0
-%                     Lambda_BC_thermal = Lambda_BC_thermal * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
-%                     Lambda_BC_fast = Lambda_BC_fast * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
-%                 end
-%             end
-%         end
+        if abs(phi_th(i-1,1)-(phi_th(1,1))) < threshold && abs(phi_rap(i-1,1)-(phi_rap(1,1))) < threshold
+            break;
+        end
         
     end %fin boucle itération flux
     
 end %fin boucle lenght(T)
 
-U5_burning_rate = Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1);
+U5_burning_rate = Y(i-1,1)*NA*(U235_sig_fis_th*phi_th(i-1,1) + U235_sig_fis_rap*phi_rap(i-1,1)); %[#/m3.s]
 
 %--------------------------------------------------------------------------
 %%
@@ -188,7 +203,7 @@ U5_burning_rate = Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis
 % Graphes %
 %%%%%%%%%%%
 
-%especes
+%especes - loglog
 figure;
 loglog(T,Y(:,1)/V);
 hold on;
@@ -207,20 +222,52 @@ hold on;
 loglog(T,Y(:,8)/V,'--');
 xlabel('Temps [s]');
 ylabel('Concentration molaire des espèces [mol/l]');
-legend('U235','U238','U239','Np239','Pu239','PF^{*}','PF^{*}_poison','PF');
+legend('U235','U238','U239','Np239','Pu239','PF^{*}','PF^{*}_{poison}','PF');
 hold off;
 
-% %neutrons
-% figure;
-% loglog(T,n_th(:,1),'b');
-% hold on;
-% loglog(T,n_rap(:,1),'r');
-% xlabel('Temps [s]');
-% ylabel('Population de neutrons [#]');
-% legend('Thermique','Rapide');
-% hold off;
+%especes - plot
+figure;
+plot(T,Y(:,1)/V);
+hold on;
+plot(T,Y(:,2)/V);
+hold on;
+plot(T,Y(:,3)/V);
+hold on;
+plot(T,Y(:,4)/V);
+hold on;
+plot(T,Y(:,5)/V);
+hold on;
+plot(T,Y(:,6)/V,'--');
+hold on;
+plot(T,Y(:,7)/V,'k--');
+hold on;
+plot(T,Y(:,8)/V,'--');
+xlabel('Temps [s]');
+ylabel('Concentration molaire des espèces [mol/l]');
+legend('U235','U238','U239','Np239','Pu239','PF^{*}','PF^{*}_{poison}','PF');
+hold off;
 
-%flux de neutrons
+%neutrons - loglog
+figure;
+loglog(T,n_th(:,1),'b');
+hold on;
+loglog(T,n_rap(:,1),'r');
+xlabel('Temps [s]');
+ylabel('Population de neutrons [#]');
+legend('Thermique','Rapide');
+hold off;
+
+%neutrons - plot
+figure;
+plot(T,n_th(:,1),'b');
+hold on;
+plot(T,n_rap(:,1),'r');
+xlabel('Temps [s]');
+ylabel('Population de neutrons [#]');
+legend('Thermique','Rapide');
+hold off;
+
+%flux de neutrons - loglog
 figure;
 loglog(T,phi_th(:,1),'b');
 hold on;
@@ -230,17 +277,60 @@ ylabel('Flux de neutrons [#/m^2.s]');
 legend('Thermique','Rapide');
 hold off;
 
-%puissance
+%flux de neutrons - loglog
 figure;
-plot([0 t_final],[P_min P_min],'b');
+plot(T,phi_th(:,1),'b');
 hold on;
-plot([0 t_final],[P_max P_max],'r');
+plot(T,phi_rap(:,1),'r');
+xlabel('Temps [s]');
+ylabel('Flux de neutrons [#/m^2.s]');
+legend('Thermique','Rapide');
+hold off;
+
+%puissance - loglog
+figure;
+loglog([0 t_final],[Power_min Power_min],'b');
+hold on;
+loglog([0 t_final],[Power_max Power_max],'r');
+hold on;
+loglog(T,Power(:,1),'g');
+xlabel('Temps [s]');
+ylabel('Puissance libérée [GW]');
+legend('P_{MIN}','P_{MAX}','POWER');
+hold off;
+
+%puissance - plot
+figure;
+plot([0 t_final],[Power_min Power_min],'b');
+hold on;
+plot([0 t_final],[Power_max Power_max],'r');
 hold on;
 plot(T,Power(:,1),'g');
 xlabel('Temps [s]');
 ylabel('Puissance libérée [GW]');
 legend('P_{MIN}','P_{MAX}','POWER');
 hold off;
+
+%barre de controle - loglog
+figure;
+loglog(T,Lambda_BC_thermal(:,1),'k');
+hold on;
+loglog(T,Lambda_BC_fast(:,1),'k');
+xlabel('Temps [s]');
+ylabel('\lambda_{BC} [s^{-1}]');
+legend('Thermique','Rapide');
+hold off;
+
+%barre de controle - plot
+figure;
+plot(T,Lambda_BC_thermal(:,1),'k');
+hold on;
+plot(T,Lambda_BC_fast(:,1),'k');
+xlabel('Temps [s]');
+ylabel('\lambda_{BC} [s^{-1}]');
+legend('Thermique','Rapide');
+hold off;
+
 
 %--------------------------------------------------------------------------
 %%
