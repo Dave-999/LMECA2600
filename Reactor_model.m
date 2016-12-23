@@ -7,7 +7,7 @@ tic
 %%%%%%%%%%%%%%
 
 if nargin == 0  
-    t_final = 200; %temps de simulation [s]
+    t_final = 1000; %temps de simulation [s]
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
     m_tot = 25; %masse totale de combustible [kg]
@@ -46,7 +46,7 @@ m_neutron = 1.67493e-27; %masse neutron [kg]
 v_th = sqrt(E_th*eV_Joule*2/m_neutron); %vitesse neutron thermique [m/s]
 v_rap = sqrt(E_rap*eV_Joule*2/m_neutron); %vitesse neutron rapide [m/s]
 
-T_PF = 1; %temps de demi-vie pour PF* = PF + n + 5 MeV
+T_PF = 7; %temps de demi-vie pour PF* = PF + n + 5 MeV
 lambda_PF = log(2)/T_PF; %lambda pour PF* = PF + n + 5 MeV
 T_rt = 5e-4; %temps de demi-vie pour n_rap -> n_th
 lambda_rt = log(2)/T_rt; %lambda transition rapide->thermique
@@ -143,7 +143,6 @@ U5_burning_rate(1,1) = U5_burning_rate_init;
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 %Equations detaillees dans le rapport
-
 for i = 2:length(T)
     
     for j = 1:max_iteration %iteration sur les flux de neutrons
@@ -154,8 +153,8 @@ for i = 2:length(T)
         Y(i,3) = Y(i-1,3) + (Y(i-1,2)*U238_sig_cap_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) - Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,3)*log(2)/U239_demi_vie)*dt_gen;
         Y(i,4) = Y(i-1,4) + (Y(i-1,3)*log(2)/U239_demi_vie - Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) - Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) - Y(i-1,4)*log(2)/Np239_demi_vie)*dt_gen;
         Y(i,5) = Y(i-1,5) + (Y(i-1,4)*log(2)/Np239_demi_vie - Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) - Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*dt_gen;
-        Y(i,6) = Y(i-1,6) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*(1-Poison_pour/100)*dt_gen - Y(i-1,6)*lambda_PF*dt_gen;
-        Y(i,7) = Y(i-1,7) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*Poison_pour/100*dt_gen + (- Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) - Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
+        Y(i,6) = Y(i-1,6) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*dt_gen - Y(i-1,6)*lambda_PF*dt_gen;
+        Y(i,7) = 0;%Y(i-1,7) + (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*2*Poison_pour/100*dt_gen + (- Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) - Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) - Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
         Y(i,8) = Y(i-1,8) + (Y(i-1,6)*lambda_PF + Y(i-1,7)*Xe135_sig_cap_th*phi_th(i-1,1) + Y(i-1,7)*Xe135_sig_cap_rap*phi_rap(i-1,1) + Y(i-1,7)*log(2)/Xe135_demi_vie)*dt_gen;
         
         %calculs des neutrons et flux de neutrons
@@ -182,7 +181,7 @@ for i = 2:length(T)
                 Lambda_BC_fast = max(Lambda_BC_fast,Lambda_BC_fast_min);
                 Lambda_BC_fast = min(Lambda_BC_fast,Lambda_BC_fast_max);
                 
-                Lambda_corr = Lambda_corr * 0.9;
+                Lambda_corr = Lambda_corr * 0.97;
                 
                 end
                 
@@ -198,12 +197,11 @@ for i = 2:length(T)
                     Lambda_BC_fast = max(Lambda_BC_fast,Lambda_BC_fast_min);
                     Lambda_BC_fast = min(Lambda_BC_fast,Lambda_BC_fast_max);
                     
-                    Lambda_corr = Lambda_corr * 0.9;
+                    Lambda_corr = Lambda_corr * 0.97;
                     
                 end
                 
             end
- 
         end
         
         %consommation d'U235

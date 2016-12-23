@@ -7,7 +7,7 @@ tic
 %%%%%%%%%%%%%%
 
 if nargin == 0  
-    t_final = 100; %temps de simulation [s]
+    t_final = 3600; %temps de simulation [s]
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
     m_tot = 25; %masse totale de combustible [kg]
@@ -46,7 +46,7 @@ m_neutron = 1.67493e-27; %masse neutron [kg]
 v_th = sqrt(E_th*eV_Joule*2/m_neutron); %vitesse neutron thermique [m/s]
 v_rap = sqrt(E_rap*eV_Joule*2/m_neutron); %vitesse neutron rapide [m/s]
 
-T_PF = 1; %temps de demi-vie pour PF* = PF + n + 5 MeV
+T_PF = 7; %temps de demi-vie pour PF* = PF + n + 5 MeV
 lambda_PF = log(2)/T_PF; %lambda pour PF* = PF + n + 5 MeV
 T_rt = 5e-4; %temps de demi-vie pour n_rap -> n_th
 lambda_rt = log(2)/T_rt; %lambda transition rapide->thermique
@@ -59,8 +59,7 @@ Lambda_BC_fast_min = 600; %lambda rapide min
 Lambda_BC_fast_max = 2000; %lambda rapide min
 Lambda_BC_fast = 600; %lambda rapide initial
 
-Lambda_corr_max = 0.05; %Correction max du lambda : 5%/s
-Lambda_corr = 0.05; %Correction du lambda : 5%/s
+Lambda_corr = 0.05; %Correction max du lambda : 5%/s
 
 E_fis = 200e6 * eV_Joule * W_GW; %energie fission [GJ]
 E_PF = 5e6 * eV_Joule * W_GW; %energie PF* = PF + n [GJ]
@@ -144,7 +143,6 @@ U5_burning_rate(1,1) = U5_burning_rate_init;
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 %Equations detaillees dans le rapport
-
 for i = 2:length(T)
     
     for j = 1:max_iteration %iteration sur les flux de neutrons
@@ -169,10 +167,12 @@ for i = 2:length(T)
         Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
 
         %calcul des barres de controle 
-        if mod(T(i),1) == 0
+        if mod(T(i),1) == 0 %modification uniquement toutes les secondes
             
-            if Power(i,1) >= Power_min
+            if Power(i,1) > Power_max
                 
+                if Power(i,1) >= Power(i-1e4)
+                    
                 Lambda_BC_thermal = Lambda_BC_thermal / (1-Lambda_corr);
                 Lambda_BC_thermal = max(Lambda_BC_thermal,Lambda_BC_thermal_min);
                 Lambda_BC_thermal = min(Lambda_BC_thermal,Lambda_BC_thermal_max);
@@ -181,13 +181,27 @@ for i = 2:length(T)
                 Lambda_BC_fast = max(Lambda_BC_fast,Lambda_BC_fast_min);
                 Lambda_BC_fast = min(Lambda_BC_fast,Lambda_BC_fast_max);
                 
-                if (Power(i,1)-Power(i+A
+                 Lambda_corr = Lambda_corr * (Power(i)-Power(i-1e4))/Power(i);
                 
-            elseif Power(i,1) > Power_max
+                end
                 
+            elseif Power(i,1) < Power_max
                 
+                if Power(i,1) <= Power(i-1e4)
+                    
+                    Lambda_BC_thermal = Lambda_BC_thermal * (1-Lambda_corr);
+                    Lambda_BC_thermal = max(Lambda_BC_thermal,Lambda_BC_thermal_min);
+                    Lambda_BC_thermal = min(Lambda_BC_thermal,Lambda_BC_thermal_max);
+                    
+                    Lambda_BC_fast = Lambda_BC_fast * (1-Lambda_corr);
+                    Lambda_BC_fast = max(Lambda_BC_fast,Lambda_BC_fast_min);
+                    Lambda_BC_fast = min(Lambda_BC_fast,Lambda_BC_fast_max);
+                    
+                    Lambda_corr = Lambda_corr * (Power(i)-Power(i-1e4))/Power(i);
+                    
+                end
                 
-            
+            end
         end
         
         %consommation d'U235
