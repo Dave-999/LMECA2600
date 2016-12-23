@@ -7,7 +7,7 @@ tic
 %%%%%%%%%%%%%%
 
 if nargin == 0  
-    t_final = 150; %temps de simulation [s]
+    t_final = 100; %temps de simulation [s]
     n_th_init = 1e15; %nombre initial de neutrons thermiques
     n_fa_init = 0; %nombre intial de neutrons rapides
     m_tot = 25; %masse totale de combustible [kg]
@@ -175,42 +175,21 @@ for i = 2:length(T)
         Power(i,1) = (Y(i-1,1)*U235_sig_fis_th*phi_th(i-1,1) + Y(i-1,2)*U238_sig_fis_th*phi_th(i-1,1) + Y(i-1,3)*U239_sig_fis_th*phi_th(i-1,1) + Y(i-1,4)*Np239_sig_fis_th*phi_th(i-1,1) + Y(i-1,5)*Pu239_sig_fis_th*phi_th(i-1,1) + Y(i-1,1)*U235_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,2)*U238_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,3)*U239_sig_fis_rap*phi_rap(i-1,1)+ Y(i-1,4)*Np239_sig_fis_rap*phi_rap(i-1,1) + Y(i-1,5)*Pu239_sig_fis_rap*phi_rap(i-1,1))*NA*E_fis + Y(i-1,6)*lambda_PF*NA*E_PF + n_rap(i-1,1)*lambda_rt*E_rt;
 
         %calcul des barres de controle 
-        
         if mod(T(i),1) == 0
             if Power(i,1) < Power_min
-                lambda_perte_th = lambda_perte_th * 0.95;
-                lambda_perte_rap = lambda_perte_rap * 0.95;
+                Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1e4,1) * 0.95;
+                Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1e4,1) * 0.95;
             end
             if Power(i,1) >= Power_min
                 if Power(i,1)-Power(i-1e4,1) > 0
-                    lambda_perte_th = lambda_perte_th_in * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
-                    lambda_perte_rap = lambda_perte_rap * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                    Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1e4,1) * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
+                    Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1e4,1) * (1 + 0.6*(Power(i,1)-Power(i-1e4,1))/Power(i,1));
                 elseif Power(i,1)-Power(i-1e4,1) < 0
-                    lambda_perte_th = lambda_perte_th * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
-                    lambda_perte_rap = lambda_perte_rap * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                    Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1e4,1) * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
+                    Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1e4,1) * (1 - 0.35*(Power(i-1e4,1)-Power(i,1))/Power(i-1e4,1));
                 end
             end
         end
-        
-%         if mod(T(i),1) == 0
-%             if Power(i,1) > 0.01
-%                 if Power(i,1)-Power(i-1e4,1) >= 0
-%                     
-%                     Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1e4,1) * (1-Lambda_corr);
-%                     Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1e4,1) * (1-Lambda_corr);
-%                     Lambda_corr = Lambda_corr * 0.99;
-%                     
-%                 end
-%             elseif Power(i,1) < 0.01
-%                 if Power(i,1)-Power(i-1e4,1) <= 0
-%                     
-%                     Lambda_BC_thermal(i,1) = Lambda_BC_thermal(i-1e4,1) / (1-Lambda_corr);
-%                     Lambda_BC_fast(i,1) = Lambda_BC_fast(i-1e4,1) / (1-Lambda_corr);
-%                     Lambda_corr = Lambda_corr * 0.99;
-%                     
-%                 end
-%             end
-%         end
         
         %consommation d'U235
         U5_burning_rate(i,1) = Y(i-1,1)*molarMass('U235')*(U235_sig_fis_th*phi_th(i-1,1) + U235_sig_fis_rap*phi_rap(i-1,1));
